@@ -6,6 +6,7 @@ Contains functions for generating command-line reports.
 
 import itertools as it
 import logging
+import os
 
 from . import util
 
@@ -103,6 +104,33 @@ def summary(setmap):
 
     return "\n".join(lines)
 
+def filemap(filemap):
+    """
+    Produce a filemap report for the platform set
+    """
+    lines = ['']
+    data = []
+    max_set_len = len('Platform Set')
+
+    all_files = set()
+    for pset in filemap.keys():
+        for fn in filemap[pset].keys():
+            all_files.add(fn)
+
+    common_prefix = os.path.commonpath( list(all_files) )
+
+    for pset in sorted(filemap.keys(), key=len):
+        name = "{%s}:" % (", ".join(pset))
+        files = sorted(filemap[pset].keys())
+
+        data += [[name, os.path.relpath(files[0], common_prefix),
+                  "%d" % (filemap[pset][files[0]])]]
+        for fn in files[1:]:
+            data += [['', os.path.relpath(fn, common_prefix),
+                      "%d" % (filemap[pset][fn]) ]]
+
+    lines += [table(["Platform Set", "Files", "LOC"], data)]
+    return "\n".join(lines)
 
 def clustering(output_name, setmap):
     """

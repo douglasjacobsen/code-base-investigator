@@ -157,6 +157,7 @@ class TreeMapper(TreeWalker):
     def __init__(self, _tree, _node_associations):
         super().__init__(_tree, _node_associations)
         self.line_map = collections.defaultdict(int)
+        self.file_map = {}
 
     def walk(self, state):
         """
@@ -164,10 +165,10 @@ class TreeMapper(TreeWalker):
         """
         if not self.line_map:
             for fn in state.get_filenames():
-                self._map_node(state.get_tree(fn).root, state.get_map(fn))
-        return self.line_map
+                self._map_node(fn, state.get_tree(fn).root, state.get_map(fn))
+        return (self.line_map, self.file_map)
 
-    def _map_node(self, node, _map):
+    def _map_node(self, _fn, _node, _map):
         """
         Map a specific node, and descend into the children nodes.
         """
@@ -184,7 +185,7 @@ class PlatformMapper(TreeMapper):
         self.codebase = codebase
         self._null_set = frozenset([])
 
-    def _map_node(self, _node, _map):
+    def _map_node(self, _fn, _node, _map):
         """
         Map a specific node to its platform set, and descend into the
         children nodes.
@@ -201,8 +202,21 @@ class PlatformMapper(TreeMapper):
             if association:
                 platform = frozenset(association.platforms)
                 self.line_map[platform] += _node.num_lines
+                if platform not in self.file_map:
+                    self.file_map[platform] = collections.defaultdict(int)
+
+                if _fn not in self.file_map[platform]:
+                    self.file_map[platform][_fn] = 0
+
+                self.file_map[platform][_fn] += _node.num_lines
             else:
                 self.line_map[self._null_set] += _node.num_lines
+                if self._null_set not in self.file_map:
+                    self.file_map[self._null_set] = collections.defaultdict(int)
+
+                if _fn not in self.file_map[self._null_set]:
+                    self.file_map[self._null_set][_fn] = 0
+                self.file_map[self._null_set][_fn] += _node.num_lines
 
         for child in _node.children:
-            self._map_node(child, _map)
+            self._map_node(_fn, child, _map)

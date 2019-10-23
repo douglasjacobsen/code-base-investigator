@@ -70,7 +70,7 @@ if __name__ == '__main__':
                         default=os.getcwd(), type=str,
                         help="Set working root directory (default .)")
     parser.add_argument('-R', '--report', dest='reports', metavar='REPORT', default=['all'],
-                        choices=['all', 'summary', 'clustering'], nargs='+',
+                        choices=['all', 'summary', 'clustering', 'filemap'], nargs='+',
                         help='desired output reports (default: all)')
     args = parser.parse_args()
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     # Count lines for platforms
     platform_mapper = walkers.PlatformMapper(codebase)
-    setmap = platform_mapper.walk(state)
+    (setmap, filemap) = platform_mapper.walk(state)
 
     output_prefix = os.path.realpath(guess_project_name(args.config_file))
 
@@ -103,6 +103,12 @@ if __name__ == '__main__':
         summary = report.summary(setmap)
         if summary is not None:
             print(summary)
+
+    # Print filemap report
+    if report_enabled("filemap"):
+        map_report = report.filemap(filemap)
+        if map_report is not None:
+            print(map_report)
 
     # Print clustering report
     if report_enabled("clustering"):
